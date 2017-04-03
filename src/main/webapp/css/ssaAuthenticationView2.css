@@ -1,0 +1,50 @@
+* {
+  margin: 0px;
+  padding: 0px;
+}
+#label {
+  width: 100%;
+  height: 100px;
+  background: blue;
+}
+#auth {
+  width: 436px;
+  margin-left: 10%;
+  border: 1px solid black;
+}
+#auth ul {
+  list-style: none;
+}
+#auth ul li {
+  height: 36px;
+  border: 1px solid ;
+  margin-top: 10px;
+  line-height: 36px;
+  width: 436px;
+}
+#auth ul li .label {
+  width: 36px;
+  float: left;
+  text-indent: 2em;
+  height: 36px;
+  background: lime;
+}
+#auth ul li .value {
+  background: lime;
+  height: 36px;
+  width: 398px;
+  float: left;
+}
+#auth ul li .value input {
+  border: 1px solid black;
+  line-height: 34px;
+  width: inherit;
+  text-indent: 1em;
+  letter-spacing: 1px;
+}
+#auth ul li #submit {
+  width: 70px;
+  letter-spacing: 1em;
+  text-indent: 1em;
+  margin-left: 178px;
+}

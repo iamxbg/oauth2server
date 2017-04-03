@@ -1,0 +1,68 @@
+* {
+  margin: 0px;
+  padding: 0px;
+}
+#label {
+  width: 100%;
+  height: 100px;
+  background: skyblue;
+}
+#auth {
+  width: 516px;
+  margin-top: 30px;
+  border: 1px solid black;
+  visibility: hidden;
+}
+#auth ul {
+  list-style: none;
+}
+#auth ul #lastLi {
+  margin-bottom: 14px;
+}
+#auth ul li.iptLi {
+  height: 36px;
+  line-height: 36px;
+}
+#auth ul li.errLi {
+  height: 24px;
+  line-height: 24px;
+}
+#auth ul li.errLi .error {
+  text-indent: 4em;
+  float: left;
+  letter-spacing: 4px;
+  color: red;
+}
+#auth ul li {
+  border: 1px solid ;
+  margin-top: 2px;
+  margin-left: 40px;
+  width: 436px;
+}
+#auth ul li .label {
+  width: 36px;
+  float: left;
+  text-indent: 2em;
+  height: 36px;
+  background: red;
+}
+#auth ul li .value {
+  background: lime;
+  height: 36px;
+  width: 398px;
+  float: left;
+}
+#auth ul li .value input {
+  border: 1px solid black;
+  line-height: 34px;
+  width: inherit;
+  text-indent: 1em;
+  letter-spacing: 1px;
+}
+#auth ul li #submit {
+  width: 70px;
+  letter-spacing: 1em;
+  text-indent: 1em;
+  margin-left: 178px;
+  cursor: pointer;
+}

@@ -1,0 +1,103 @@
+@li-height:40px;
+@img-height:(@li-height)-4;
+@img-width:(@li-height)-4;
+@input-width:400px;
+@li-margin-width:40px;
+@li-width:(@img-width)+(@input-width);
+@auth-width:(@img-width)+(@input-width)+2*(@li-margin-width);
+@input-height:(@li-height)-4;
+
+@submit-width:70px;
+
+*{
+	margin:0px;
+  	padding:0px;
+}
+
+#label{
+	width:100%;
+  	height:100px;
+  	background:skyblue;
+}
+
+#auth{
+	width:@auth-width;
+  	margin-top:30px;
+  	border:1px solid black;
+  	visibility:hidden;
+	
+  ul{
+    list-style:none;
+    
+     #lastLi{
+        	margin-bottom:14px;
+        }
+    
+    li.iptLi{
+    	
+      	height:(@li-height)-4;
+        line-height:(@li-height)-4;
+
+    }
+    
+    li.errLi{
+    	height:((@li-height)-4)*2/3;
+        line-height:((@li-height)-4)*2/3;
+      
+      
+      .error{
+      	text-indent: 4em;
+        float: left;
+        letter-spacing: 4px;
+        color: red;
+      }
+    }
+    
+    li{
+     // height:(@li-height)-4;
+      border:1px solid ;
+      margin-top:2px;
+      margin-left:@li-margin-width;
+     // line-height:(@li-height)-4;
+      width:@li-width;
+      
+      
+    
+      
+      .label{
+      	width:@img-width;
+        float:left;
+        text-indent: 2em;
+        height:@img-height;
+        background:red;
+		
+      }
+      
+      .value{
+        background:lime;
+        height:(@li-height)-4;
+        width:(@input-width)-2;
+    	float:left;
+        
+        
+        
+        input{
+        	border:1px solid black;
+          	line-height:(@li-height)-6;
+          	width:inherit;
+          	text-indent:1em;
+          	letter-spacing:1px;
+          
+        }
+      }
+      
+      #submit{
+      	width: @submit-width;
+		letter-spacing: 1em;
+		text-indent: 1em;
+        margin-left:((@li-width)-(@submit-width))*0.5-5;
+        cursor:pointer;
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+   <Configuration status="WARN">
+     <Appenders>
+       <Console name="Console" target="SYSTEM_OUT">
+         <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+       </Console>
+       <RollingFile name="RollingFile" fileName="${sys:user.home}/logs/info.log"
+                      filePattern="${sys:user.home}/logs/$${date:yyyy-MM}/info-%d{yyyy-MM-dd}-%i.log">
+             <!--控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->        
+             <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
+             <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %l - %m%n"/>
+             <Policies>
+                 <TimeBasedTriggeringPolicy/>
+                 <SizeBasedTriggeringPolicy size="100 MB"/>
+             </Policies>
+         </RollingFile>
+     </Appenders>
+     <Loggers>
+       <Root level="info">
+         <AppenderRef ref="Console"/>
+         <AppenderRef ref='RollingFile'/>
+       </Root>
+     </Loggers>
+   </Configuration>
