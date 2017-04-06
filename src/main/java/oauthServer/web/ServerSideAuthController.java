@@ -42,6 +42,7 @@ import oauthServer.service.ClientService;
 import oauthServer.service.OAuth2Service;
 import oauthServer.service.ServiceService;
 import oauthServer.util.TicketType;
+import oauthServer.util.TicketTypeChecker;
 
 
 @Controller
@@ -197,7 +198,7 @@ public class ServerSideAuthController {
 		 * @return
 		 */
 		@RequestMapping(path="/token",method=RequestMethod.POST)
-		@Produces("application/json")
+		@Produces("application/json;charset=utf-8")
 		public ResponseEntity<Map<String, String>> token(@RequestParam("grant_type") String grant_type,
 				@RequestParam("client_id") String client_id,
 				@RequestParam("service_id") String service_id,
@@ -217,46 +218,57 @@ public class ServerSideAuthController {
 					String keyPart=code.substring(0, splitIndex);
 					String valPart=code.substring(splitIndex+1);
 					
-					int service_id_int=serService.findByService_id(service_id).getId();
-					
-					Client client=cliService.findByClient_id(client_id);
-					int client_id_int=client.getId();
-					
-					String value=oauth2Service.getVal(keyPart);
-					
-					String trueSecrect=client.getClient_secrect();
-					
-					
-					if(value!=null && value.equals(valPart) && trueSecrect.equals(client.getClient_secrect())){
-						//create access_token
+					if(TicketTypeChecker.isType(keyPart, TicketType.AUTHORIZATION_CODE)){
 						
-						logger.info("service_id_int:"+service_id_int);
-						logger.info("client_id_int:"+client_id_int);
-						logger.info("user_id:"+user_id);
-						String access_token_key=generateKey_AccessToken(service_id_int, client_id_int, Integer.parseInt(user_id));
-						//save in redis
-						String access_token=oauth2Service.addTicket(access_token_key,TicketType.ACCESS_TOEKN);
-						//expires ticket
-						oauth2Service.expires(code);
-						//return to client-server
-						result.put("access_token", access_token);
-						return new ResponseEntity<Map<String,String>>(result,HttpStatus.OK);
+						int service_id_int=serService.findByService_id(service_id).getId();
+						
+						Client client=cliService.findByClient_id(client_id);
+						int client_id_int=client.getId();
+						
+						String value=oauth2Service.getVal(keyPart);
+						
+						String trueSecrect=client.getClient_secrect();
+						
+						
+						if(value!=null && value.equals(valPart) && trueSecrect.equals(client.getClient_secrect())){
+							//create access_token
+							
+							logger.info("service_id_int:"+service_id_int);
+							logger.info("client_id_int:"+client_id_int);
+							logger.info("user_id:"+user_id);
+							String access_token_key=generateKey_AccessToken(service_id_int, client_id_int, Integer.parseInt(user_id));
+							//save in redis
+							String access_token=oauth2Service.addTicket(access_token_key,TicketType.ACCESS_TOEKN);
+							//expires ticket
+							oauth2Service.expires(code);
+							//return to client-server
+							result.put("access_token", access_token);
+							return new ResponseEntity<Map<String,String>>(result,HttpStatus.OK);
+							
+						}else{
+							//not found
+							result.put("error_description", "未找到，請確認是否過期!");
+							return new ResponseEntity<Map<String,String>>(result, HttpStatus.OK);
+						}
 						
 					}else{
-						//not found
-						result.put("error_description", "未找到，請確認是否過期!");
-						return new ResponseEntity<Map<String,String>>(result, HttpStatus.NOT_FOUND);
+						result.put("error_description", "錯誤的access_token_authorization_code 格式");
+						return new ResponseEntity<Map<String,String>>(result,HttpStatus.OK);
 					}
+	
+				}else{
+					//grant_type erorr
+					result.put("error_description", "錯誤的授權模式，只接受authorization_code");
+					return new ResponseEntity<Map<String,String>>(result, HttpStatus.OK);
 				}
-				//grant_type erorr
-				result.put("error_description", "錯誤的授權模式，只接受authorization_code");
-				return new ResponseEntity<Map<String,String>>(result, HttpStatus.BAD_REQUEST);
-			
+							
 		}
 		
 		
-		@RequestMapping(path="/refreshToken",method=RequestMethod.POST,produces={MediaType.APPLICATION_JSON})
+		@RequestMapping(path="/refreshToken",method=RequestMethod.POST,produces={"application/json;charset=utf-8"})
 		public ResponseEntity<Map<String, String>> refreshToken(@RequestParam("grant_type") String grant_type
+				,@RequestParam("client_id") String client_id
+				,@RequestParam("client_secrect") String client_secrect
 				,@RequestParam("refresh_token") String refresh_token){
 			
 			//grant_type must be refresh_token
@@ -270,46 +282,59 @@ public class ServerSideAuthController {
 				String keyPart=refresh_token.substring(0, splitIndex);
 				String valPart=refresh_token.substring(splitIndex+1);
 				
-				String value=oauth2Service.getVal(keyPart);
-								
-				if(value!=null && value.equals(valPart)){
-					//check if old grant_type is exists, no action!
-					String[] parts=refresh_token.split(":");
-
-					String accessTokenKey=new StringBuilder(REDIS_KEY_ACCESS_TOKEN)
-										.append(":").append(parts[1])
-										.append(":").append(parts[2])
-										.append(":").append(parts[3])
-										.toString();
+				if(TicketTypeChecker.isType(keyPart, TicketType.REFRESH_TOEKN)){
 					
-					Set<String> keys=oauth2Service.keys(accessTokenKey);
-					if(keys!=null && keys.size()>1 ){
-						// accesss_token is not expired, refuse refresh request!
-						respMap.put("error_description", "AccessToken尚未過期，請求拒絕!");
+					String value=oauth2Service.getVal(keyPart);
+					
+					Client client=cliService.findByClient_id(client_id);
+					
+					if(value!=null && value.equals(valPart) && client!=null && client.getClient_secrect().equals(client_secrect)){
+						//check if old grant_type is exists, no action!
+						String[] parts=refresh_token.split(":");
+
+						String accessTokenKey=new StringBuilder(REDIS_KEY_ACCESS_TOKEN)
+											.append(":").append(parts[1])
+											.append(":").append(parts[2])
+											.append(":").append(parts[3])
+											.toString();
+						
+						Set<String> keys=oauth2Service.keys(accessTokenKey);
+						if(keys!=null && keys.size()>1 ){
+							// accesss_token is not expired, refuse refresh request!
+							respMap.put("error_description", "AccessToken尚未過期，請求拒絕!");
+							return new ResponseEntity<Map<String,String>>(respMap, HttpStatus.OK);
+						}
+						
+						//set new access_token
+						String access_token=oauth2Service.addTicket(accessTokenKey, TicketType.ACCESS_TOEKN);
+						//set new refresh_token
+						 refresh_token=oauth2Service.addTicket(keyPart, TicketType.REFRESH_TOEKN);
+						 
+						 respMap.put("access_token", access_token);
+						 respMap.put("refresh_token", refresh_token);
+						 
+						 return new ResponseEntity<Map<String,String>>(respMap, HttpStatus.OK);
+						
+					}else{
+						respMap.put("error_description", "驗證失敗，可能原因：refresh_token過期！請重新將用戶導向授權頁面!");
 						return new ResponseEntity<Map<String,String>>(respMap, HttpStatus.OK);
 					}
 					
-					//set new access_token
-					String access_token=oauth2Service.addTicket(accessTokenKey, TicketType.ACCESS_TOEKN);
-					//set new refresh_token
-					 refresh_token=oauth2Service.addTicket(keyPart, TicketType.REFRESH_TOEKN);
-					 
-					 respMap.put("access_token", access_token);
-					 respMap.put("refresh_token", refresh_token);
-					 
-					 return new ResponseEntity<Map<String,String>>(respMap, HttpStatus.OK);
-					
 				}else{
-					respMap.put("error_description", "驗證失敗，可能原因：refresh_token過期！請重新將用戶導向授權頁面!");
+					
+					respMap.put("error_description", "錯誤的grant_type,只接受refresh_token類型!");
 					return new ResponseEntity<Map<String,String>>(respMap, HttpStatus.OK);
+					
 				}
 				
+					
 			}else{
-				
-				respMap.put("error_description", "錯誤的grant_type,只接受refresh_token類型!");
+				respMap.put("error_description", "錯誤的refresh_token格式!");
 				return new ResponseEntity<Map<String,String>>(respMap, HttpStatus.OK);
-				
 			}
+				
+				
+				
 			
 			
 		}
@@ -317,22 +342,32 @@ public class ServerSideAuthController {
 
 
 		@RequestMapping(path="/check_token/access_token={access_token}",method=RequestMethod.GET)
-		public ResponseEntity<Map<String, Boolean>> checkToken(@PathVariable("access_token") String access_token){
+		public ResponseEntity<Map<String, Object>> checkToken(@PathVariable("access_token") String access_token){
 			
 			int splitIndex=access_token.lastIndexOf(':');
 			
 			String keyPart=access_token.substring(0, splitIndex);
 			String valPart=access_token.substring(splitIndex+1);
 			
-			String value=oauth2Service.getVal(keyPart);
+			Map<String, Object> result=new HashMap<>();
 			
-			Map<String, Boolean> result=new HashMap<>();
-			if(value!=null && value.equals(valPart)){
+			if(TicketTypeChecker.isType(keyPart, TicketType.ACCESS_TOEKN)){
+				if(TicketTypeChecker.isType(keyPart, TicketType.ACCESS_TOEKN)){
+					String value=oauth2Service.getVal(keyPart);
+					
+					
+					if(value!=null && value.equals(valPart)){
+						
+						result.put("is_success",true);
 				
-				result.put("is_success",true);
-		
+					}else{
+						result.put("is_success", false);
+					}
+				}else{
+					result.put("error_description", "錯誤的access_token格式!");
+				}
 			}else{
-				result.put("is_success", false);
+				result.put("error_description", "錯誤的access_token格式!");
 			}
 			
 			return new ResponseEntity<>(result,HttpStatus.OK);
@@ -342,7 +377,7 @@ public class ServerSideAuthController {
 		
 		
 		@RequestMapping(path="/testReceiveAuthCode",method=RequestMethod.POST,consumes={"application/json;charset=utf-8"})
-		public ModelAndView receiveAuthCodes(@RequestBody Map<String,String> result,ModelAndView mav){
+		public ModelAndView testReceiveAuthCodes(@RequestBody Map<String,String> result,ModelAndView mav){
 			System.out.println("@Test received codes");
 			
 			logger.info("access_token_authcode:"+result.get("openid_authorization_code"));

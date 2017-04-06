@@ -19,21 +19,21 @@ public class OAuthUtils {
 	public  static String REDIS_KEY_REFRESH_TOKEN="rfk";
 	
 	
-	/*
+	
 	public  static long EXPIRES_ACCESS_TOKEN=604000l; //7 day
 	public  static long EXPIRES_AUTHORIZATION_CODE=180l; //3 min
-	public  static long EXPIRES_OPENID=31104000l; // 360 day
+	public  static long EXPIRES_OPENID=62208000l; // 2 year
 	public  static long EXPIRES_OPENID_AUTHORIZATION_TOKEN=180l; //3 min
 	public  static long EXPIRES_REFRESH_TOKEN=2592000l; //30 day
-	*/
 	
 	
+	/*
 	public  static long EXPIRES_ACCESS_TOKEN=1800l; 				//30 min
 	public  static long EXPIRES_AUTHORIZATION_CODE=600l; 			//10 min
 	public  static long EXPIRES_OPENID=7200l; 					//30 min
 	public  static long EXPIRES_OPENID_AUTHORIZATION_TOKEN=1800l; 	//10 min
 	public  static long EXPIRES_REFRESH_TOKEN=3600l; 			//1 hour
-	
+	*/
 
 	
 	public static String generateKey_AccessToken(int service_id_int,int client_id_int,int user_id_int){

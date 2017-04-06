@@ -25,7 +25,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 	<div>
 		<div id='app_infos'>
 			<div id='app_profile'>
-				<IMG alt="" src="" />
+				<IMG alt="" src="<%=basePath%>image/flow.jpg" class="pic"/>
 			</div>
 			<div id='app_name'>
 				<SPAN>${client.name}</SPAN>
@@ -34,12 +34,14 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 		
 
 		<div id='scopes'>
-			<span id='tip'>使用${service_name}登陆后,该应用将获得以下权限:</span>
+			<span id='tip'>使用富鴻醫創登陆后,该应用将获得以下权限:</span>
+			<span class="date">.家庭健康數據</span>
+			<!-- 
 			<ul >
 				<c:forEach items="${scpList}" var='scp'>
 					<li><span>${scp.description }</span></li>
 				</c:forEach>
-			</ul>
+			</ul> -->
 		</div>
 
 		<div id='actions'>
@@ -49,7 +51,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 		</div>
 
 		<form id='authForm' action='<%=basePath%>ssa/authorize' method='post'>
-			<input type='text' name='ticket' value='${ticket}'/>
+			<input type='text' name='ticket' value='${ticket}' style="display: none;"/>
 		</form>
 		
 	</div>

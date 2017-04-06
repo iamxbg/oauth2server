@@ -25,21 +25,21 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 	<link rel='stylesheet' style='text/css' media='screen and (min-width:600px)' href='<%=basePath%>css/ssaAuthenticationView.css'>
 </head>
 <body>
-	<div id='label'>
+	<div id='label' style="">
 	
-	</div>
-	<div id='auth'>
-		<form action='<%=basePath%>openid/authenticate' method='post'>
+	</div> 
+	<div id='auth' class="one">
+		<form action='<%=basePath%>openid/authenticate' method='post' class="biao">
 		<ul>
 			<li class='iptLi'>
-				<div class='label'></div>
+				<div class='label'>用戶名:</div>
 				<div class='value'><input name='account' placeholder="請填寫用戶名"/></div>
 			</li>
 			<li class='errLi'>
 				<div class='error'><span color='red'>${requestScope.account_error}</span></div>
 			</li>
 			<li class='iptLi'>
-				<div class='label'></div>
+				<div class='label'>密&nbsp;&nbsp;&nbsp;碼:</div>
 				<div class='value'><input name='password' type='password' placeholder='請填寫密碼'/></div>
 				
 			</li>
@@ -52,11 +52,11 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 			<li id='lastLi'>	
 					<input id='submit' type='submit' value='提交'/>
 			</li>
-			<input type='text' name='service_id' value="${requestScope.service_id}"/>
-			<input type='text' name='client_id' value='${requestScope.client_id}'/>
-			<input type='text' name='state' value='${requestScope.state}'/>
-			<input type='text' name='redirect_uri' value='${requestScope.redirect_uri }'/>
-			<input type='text' name='user_id' value=${requestScope.user_id }/>
+			<input type='text' name='service_id' value="${requestScope.service_id}" style="display: none;"/>
+			<input type='text' name='client_id' value='${requestScope.client_id}' style="display: none;"/>
+			<input type='text' name='state' value='${requestScope.state}' style="display: none;"/>
+			<input type='text' name='redirect_uri' value='${requestScope.redirect_uri }' style="display: none;"/>
+			<input type='text' name='user_id' value='${requestScope.user_id }' style="display: none;"/>
 		</ul>
 		</form>
 	</div>

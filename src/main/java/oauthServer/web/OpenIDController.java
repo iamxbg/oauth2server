@@ -51,6 +51,7 @@ import oauthServer.service.OAuth2Service;
 import oauthServer.service.ScopeService;
 import oauthServer.service.ServiceService;
 import oauthServer.util.TicketType;
+import oauthServer.util.TicketTypeChecker;
 
 import static oauthServer.util.OAuthUtils.*;
 
@@ -86,77 +87,89 @@ public class OpenIDController {
 								) throws ClientProtocolException, IOException{
 		
 		logger.info("@openid:"+openid);
+		
+		
 
 		int splitIndex=openid.lastIndexOf(":");
 		String valPart=openid.substring(splitIndex+1);
 		String keyPart=openid.substring(0, splitIndex);
 		
-		
-		String value=oauth2Service.getVal(keyPart);
-		
-		
-		
-		if(value!=null && value.equals(valPart)){
-			//get user's information through httpClient Request
-			//Service service=serService.findByService_id(service_id);
+		if(TicketTypeChecker.isType(keyPart, TicketType.OPEN_ID)){
+			String value=oauth2Service.getVal(keyPart);
 			
-			int service_id_int=Integer.parseInt(openid.split(":")[1]);
-			int user_id_int=Integer.parseInt(openid.split(":")[2]);
 			
-			logger.info("uservice_id_int:"+service_id_int);
-			logger.info("user_id_int:"+user_id_int);
 			
-			Service service=serService.findById(service_id_int);
-			
-			HttpGet getUserInfo=new HttpGet(service.getUserinfo_uri()+user_id_int);
-			
-			logger.info("#get auth:"+service.getUserinfo_uri()+user_id_int);
-				//getUserInfo.setEntity(new StringEntity("user_id="+user_id_int, Charset.forName("utf-8")));
-			
-			CloseableHttpClient httpClient=HttpClients.createDefault();
-				CloseableHttpResponse response=httpClient.execute(getUserInfo);
+			if(value!=null && value.equals(valPart)){
+				//get user's information through httpClient Request
+				//Service service=serService.findByService_id(service_id);
+				
+				int service_id_int=Integer.parseInt(openid.split(":")[1]);
+				int user_id_int=Integer.parseInt(openid.split(":")[2]);
+				
+				logger.info("uservice_id_int:"+service_id_int);
+				logger.info("user_id_int:"+user_id_int);
+				
+				Service service=serService.findById(service_id_int);
+				
+				HttpGet getUserInfo=new HttpGet(service.getUserinfo_uri()+user_id_int);
+				
+				logger.info("#get auth:"+service.getUserinfo_uri()+user_id_int);
+					//getUserInfo.setEntity(new StringEntity("user_id="+user_id_int, Charset.forName("utf-8")));
+				
+				CloseableHttpClient httpClient=HttpClients.createDefault();
+					CloseableHttpResponse response=httpClient.execute(getUserInfo);
 
-				//if get successful , return user's infomation to client-app
-				if(response.getStatusLine().getStatusCode()==HttpServletResponse.SC_OK){
+					//if get successful , return user's infomation to client-app
+					if(response.getStatusLine().getStatusCode()==HttpServletResponse.SC_OK){
 
-					ObjectMapper mapper=new ObjectMapper();
-					
-					HttpEntity entity=response.getEntity();
+						ObjectMapper mapper=new ObjectMapper();
+						
+						HttpEntity entity=response.getEntity();
 
-					String respVal=EntityUtils.toString(entity);
-					
-					logger.info("respVal:"+respVal);
-					
-					//Map<String, Object> result=mapper.convertValue(respVal, HashMap.class);
-					
-					Map<String, String> map=new HashMap<>();
-						map.put("user_info", respVal);
-	
-					return new ResponseEntity<Map<String,String>>(map, HttpStatus.OK);
-				}else{
-					Map<String, String> errMap=new HashMap<>();
-						errMap.put("statusCode", Integer.toString((response.getStatusLine().getStatusCode())));
-						errMap.put("reasonPhrase", response.getStatusLine().getReasonPhrase());
-					return new ResponseEntity<Map<String,String>>(errMap, HttpStatus.INTERNAL_SERVER_ERROR);
-				}
-			//else return error_description
+						String respVal=EntityUtils.toString(entity);
+						
+						logger.info("respVal:"+respVal);
+						
+						//Map<String, Object> result=mapper.convertValue(respVal, HashMap.class);
+						
+						Map<String, String> map=new HashMap<>();
+							map.put("user_info", respVal);
+		
+						return new ResponseEntity<Map<String,String>>(map, HttpStatus.OK);
+					}else{
+						Map<String, String> errMap=new HashMap<>();
+							errMap.put("error_description", response.getStatusLine().getReasonPhrase());
+						return new ResponseEntity<Map<String,String>>(errMap, HttpStatus.INTERNAL_SERVER_ERROR);
+					}
+				//else return error_description
+			}else{
+				//openid authorization failed, maybe openid expired or gone, please 
+				//redirect user to authentication flow!
+				Map<String, String> errResult=new HashMap<>();
+					errResult.put("error_description", "未找到openid！可能已過期，或升級刪除!請重新將用戶導向登陸授權頁面!");
+				return new ResponseEntity<>(errResult,HttpStatus.OK);
+				
+			}
 		}else{
-			//openid authorization failed, maybe openid expired or gone, please 
-			//redirect user to authentication flow!
+			
 			Map<String, String> errResult=new HashMap<>();
-				errResult.put("error_description", "未找到openid！可能已過期，或升級刪除!請重新將用戶導向登陸授權頁面!");
-			return new ResponseEntity<>(errResult,HttpStatus.NOT_FOUND);
+				errResult.put("error_description", "錯誤的openid格式!");
+				return new ResponseEntity<Map<String,String>>(errResult, HttpStatus.OK);
 			
 		}
+		
+
 
 	}
 	
 	@RequestMapping(path="/retrive/code={code}",method=RequestMethod.POST,produces={"application/json;charset=utf-8"})
 	@ResponseBody
-	public ResponseEntity<Map<String, String>> retriveOpenId(@PathVariable("code") String code
+	public ResponseEntity<Map<String, String>> openid(@PathVariable("code") String code
 			,@RequestParam("service_id") String service_id
 			,@RequestParam("client_id") String client_id
-			,@RequestParam("user_id") String user_id,HttpServletResponse resp){
+			,@RequestParam("user_id") String user_id
+			,@RequestParam("client_secrect") String client_secrect
+			,HttpServletResponse resp){
 		
 		logger.info("@Retrive OpenId");
 		
@@ -167,48 +180,61 @@ public class OpenIDController {
 		String keyPart=code.substring(0, splitIndex);
 		String valPart=code.substring(splitIndex+1);
 		
-		String value=oauth2Service.getVal(keyPart);
-		logger.info("value:"+value);
-		if(value!=null && value.equals(valPart)){
-			
-			//check if openId is exist!
+		if(TicketTypeChecker.isType(keyPart, TicketType.OPEN_ID_AUTHORIZATION_CODE)){
+			String value=oauth2Service.getVal(keyPart);
+			logger.info("value:"+value);
 			
 			Service service=serService.findByService_id(service_id);
 			Client client=cliService.findByClient_id(client_id);
 			
-			int service_id_int=service.getId();
-			int client_id_int=client.getId();
-		
-			String patten=new StringBuilder(REDIS_KEY_OPENID).append(":")
-						.append(service_id_int)
-						.append(":").append(client_id_int).append(":*").toString();
-		
-			String openid=null;
+			if(value!=null && value.equals(valPart) && client!=null && client.getClient_secrect().equals(client_secrect)){
+				
+				//check if openId is exist!
+				
+				
+				
+				int service_id_int=service.getId();
+				int client_id_int=client.getId();
 			
-			logger.info("PATTERN:"+patten);
-			Set<String> keys=oauth2Service.keys(patten);
-			logger.info("KEY-SIZE:"+keys.size());
-			if(keys!=null && keys.size()>0){
-				//return old openid
-				 logger.info("FOUND:"+keys.size());
-				 openid=keys.iterator().next();
-				 logger.info("OPENID::"+openid);
+				String patten=new StringBuilder(REDIS_KEY_OPENID).append(":")
+							.append(service_id_int)
+							.append(":").append(client_id_int).append(":*").toString();
+			
+				String openid=null;
+				
+				logger.info("PATTERN:"+patten);
+				Set<String> keys=oauth2Service.keys(patten);
+				logger.info("KEY-SIZE:"+keys.size());
+				if(keys!=null && keys.size()>0){
+					//return old openid
+					 logger.info("FOUND:"+keys.size());
+					 openid=keys.iterator().next();
+					 logger.info("OPENID::"+openid);
+				}else{
+					//create new openid
+					  String openidKey=generateKey_OpenId(service_id_int, Integer.parseInt(user_id));
+					 //save in redis
+					   openid=oauth2Service.addTicket(openidKey,TicketType.OPEN_ID);
+					  //expire autho-code
+					  oauth2Service.expires(keyPart);
+				}
+				//send to client-server
+					respMap.put("openid", openid);
+				
+					return new ResponseEntity<Map<String,String>>(respMap, HttpStatus.OK);			
 			}else{
-				//create new openid
-				  String openidKey=generateKey_OpenId(service_id_int, Integer.parseInt(user_id));
-				 //save in redis
-				   openid=oauth2Service.addTicket(openidKey,TicketType.OPEN_ID);
-				  //expire autho-code
-				  oauth2Service.expires(keyPart);
-			}
-			//send to client-server
-				respMap.put("openid", openid);
-			
-				return new ResponseEntity<Map<String,String>>(respMap, HttpStatus.OK);			
-		}else
-			
-				respMap.put("error_description", "not found authorization code, check if the authorization code for open-id is syntax right, or it's expired?");
+				respMap.put("error_description", "未找到 authorization code,請檢查格式或著已經過期?");
 				return new ResponseEntity<>(respMap,HttpStatus.NOT_FOUND);
+			}
+		}else{
+			
+			respMap.put("error_description", "錯誤的openid驗證碼格式,請檢查! ");
+			return new ResponseEntity<Map<String,String>>(respMap, HttpStatus.OK);
+		}
+		
+		
+			
+				
 	}
 	
 	
@@ -285,42 +311,44 @@ public class OpenIDController {
 			
 			Map<String, Object> resultMap=null;
 			
+			Service service=serService.findByService_id(service_id);
+			
 			
 			CloseableHttpClient httpClient=null;
 			try {
 
 				httpClient=HttpClients.createDefault();
 			
-				// this uri needed change!
-			
-			HttpPost post=new HttpPost(new URI("http://10.244.171.37/TF02/oauth/authenticate"));
-				post.setHeader("Content-Type", "application/json;charset=utf-8");
-			
-			Map<String, String> map=new HashMap<>();
-				map.put("account", account);
-				map.put("password", password);
-				map.put("user_id", user_id);
-			
-			ObjectMapper mapper=new ObjectMapper();
+				String authURI=service.getAuthentication_uri();
+					
+				HttpPost post=new HttpPost(new URI(authURI));
+					post.setHeader("Content-Type", "application/json;charset=utf-8");
 				
-			String value=mapper.writeValueAsString(map);
-			
-			HttpEntity entity=new StringEntity(value, Charset.forName("utf-8"));
-				post.setEntity(entity);
-	
-				ResponseHandler<String> handler=new BasicResponseHandler();
-	
-				String respString=httpClient.execute(post, handler);
+				Map<String, String> map=new HashMap<>();
+					map.put("account", account);
+					map.put("password", password);
+					map.put("user_id", user_id);
 				
-					resultMap=mapper.readValue(respString, HashMap.class);
+				ObjectMapper mapper=new ObjectMapper();
+					
+				String value=mapper.writeValueAsString(map);
 				
-				logger.info("result:"+resultMap.get("result"));
-				logger.info("reason:"+resultMap.get("reason"));
-				
-				if("success".equals(resultMap.get("result"))) authenticatePass=true;
-				else if("password_error".equals(resultMap.get("result"))) mav.addObject("password_error", resultMap.get("reason"));
-				else if("account_error".equals(resultMap.get("result"))) mav.addObject("account_error",resultMap.get("reason"));
-				else if("fail".equals(resultMap.get("result"))) mav.addObject("fail", resultMap.get("reason"));
+				HttpEntity entity=new StringEntity(value, Charset.forName("utf-8"));
+					post.setEntity(entity);
+		
+					ResponseHandler<String> handler=new BasicResponseHandler();
+		
+					String respString=httpClient.execute(post, handler);
+					
+						resultMap=mapper.readValue(respString, HashMap.class);
+					
+					logger.info("result:"+resultMap.get("result"));
+					logger.info("reason:"+resultMap.get("reason"));
+					
+					if("success".equals(resultMap.get("result"))) authenticatePass=true;
+					else if("password_error".equals(resultMap.get("result"))) mav.addObject("password_error", resultMap.get("reason"));
+					else if("account_error".equals(resultMap.get("result"))) mav.addObject("account_error",resultMap.get("reason"));
+					else if("fail".equals(resultMap.get("result"))) mav.addObject("fail", resultMap.get("reason"));
 
 			}  catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -346,7 +374,7 @@ public class OpenIDController {
 				session.setAttribute("user_info", resultMap.get("user_info"));
 				
 				//prepare view infos
-				Service service=serService.findByService_id(service_id);
+				
 				Client client=cliService.findByClient_id(client_id);
 				
 				if(service!=null && client!=null){
